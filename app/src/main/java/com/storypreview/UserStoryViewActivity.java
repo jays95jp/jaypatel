@@ -18,7 +18,7 @@ public class UserStoryViewActivity extends BaseActivity implements OnUserStoryFi
 
     private ArrayList<Fragment> fragmentArrayList;
     private ActivityStoryViewBinding activityStoryPreviewBinding;
-//    private PagerChangeInterface pagerChangeInterface;
+    //    private PagerChangeInterface pagerChangeInterface;
     private int currentPosition = 0;
     private int currentClickPositionFromIntent = 0;
     private boolean isCallFromDashUserstory = false;

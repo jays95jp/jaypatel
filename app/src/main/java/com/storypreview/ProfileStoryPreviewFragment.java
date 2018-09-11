@@ -1,6 +1,7 @@
 package com.storypreview;
 
 import android.content.Context;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -12,6 +13,8 @@ import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 import com.storypreview.databinding.FragmentProfilePreviewStoryBinding;
 
+import java.util.Date;
+import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
@@ -49,7 +52,7 @@ public class ProfileStoryPreviewFragment extends BaseFragment implements View.On
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(aBoolean -> {
                     Picasso.with(activity)
-                            .load("https://s3-us-west-2.amazonaws.com/freewire-stage-images/Images/BodyPart_b94b0a77-799d-44a1-9a22-cbd94697ceb5.jpg")
+                            .load(R.mipmap.test_img)
                             .into(fragmentStoryViewBinding.imgStory, new Callback() {
                                 @Override
                                 public void onSuccess() {
@@ -83,7 +86,6 @@ public class ProfileStoryPreviewFragment extends BaseFragment implements View.On
                     stopStory();
                     return;
                 }
-                setSeekBarEnable(true);
                 progress[0] = ((ProgressBar) fragmentStoryViewBinding.lnyContainer.getChildAt(0)).getProgress() + 1;
                 ((ProgressBar) fragmentStoryViewBinding.lnyContainer.getChildAt(0)).setProgress(progress[0]);
                 if (progress[0] == 100) {
@@ -104,7 +106,12 @@ public class ProfileStoryPreviewFragment extends BaseFragment implements View.On
                 }
             }
         };
-
+        try {
+            Timer timer = new Timer();
+            timer.schedule(childTaskProgress, new Date(), 30);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         if (getActivity() != null) {
             period = 5000;
         }
@@ -171,7 +178,6 @@ public class ProfileStoryPreviewFragment extends BaseFragment implements View.On
     }
 
     private void addProgressBar() {
-
         fragmentStoryViewBinding.lnyContainer.removeAllViews();
         LinearLayout layout = new LinearLayout(activity);
         layout.setOrientation(LinearLayout.HORIZONTAL);
@@ -179,20 +185,15 @@ public class ProfileStoryPreviewFragment extends BaseFragment implements View.On
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         LayoutInflater inflater = (LayoutInflater) activity.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        ProgressBar seekBar = new ProgressBar(activity);
-        View view = inflater != null ? seekBar : seekBar;
-        params.weight = 1;
-        seekBar = (ProgressBar) view;
-        seekBar.setMax(100);
-        fragmentStoryViewBinding.lnyContainer.addView(view, params);
-        setSeekBarEnable(false);
-    }
-
-    private void setSeekBarEnable(boolean isEnable) {
-        Observable.fromCallable(() -> isEnable)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(aBoolean -> fragmentStoryViewBinding.lnyContainer.getChildAt(0).setEnabled(aBoolean), Throwable::printStackTrace);
+        for (int i = 0; i < 2; i++) {
+            ProgressBar progressBar = new ProgressBar(activity, null, android.R.attr.progressBarStyleHorizontal);
+            progressBar.setMax(100);
+            progressBar.setProgressDrawable(ContextCompat.getDrawable(getActivity(), R.drawable.progress_drawable));
+            params.setMargins(0, 0, 3, 0);
+            params.weight = 1;
+            View view = inflater != null ? progressBar : progressBar;
+            fragmentStoryViewBinding.lnyContainer.addView(view, params);
+        }
     }
 
     @Override
