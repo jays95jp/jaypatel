@@ -1,6 +1,5 @@
 package com.storypreview;
 
-import android.content.Intent;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.ViewPager;
 import android.util.Log;
@@ -11,17 +10,11 @@ import java.util.ArrayList;
 
 public class UserStoryViewActivity extends BaseActivity implements OnUserStoryFinish {
 
-    public static final String ARG_BUNDLE_KEY_SCREEN_TAG = "screen_tag";
     private static final String TAG = "UserStoryViewActivity";
     public boolean isPlayStory = true;
-    private int storyPosition = 0;
-
     private ArrayList<Fragment> fragmentArrayList;
     private ActivityStoryViewBinding activityStoryPreviewBinding;
-    //    private PagerChangeInterface pagerChangeInterface;
     private int currentPosition = 0;
-    private int currentClickPositionFromIntent = 0;
-    private boolean isCallFromDashUserstory = false;
 
     @Override
     public int getLayoutResId() {
@@ -38,7 +31,9 @@ public class UserStoryViewActivity extends BaseActivity implements OnUserStoryFi
     private void setStoryPager() {
 
         for (int storiesResultBean = 0; storiesResultBean < 4; storiesResultBean++) {
-            fragmentArrayList.add(new ProfileStoryPreviewFragment());
+            ProfileStoryPreviewFragment profileStoryPreviewFragment = new ProfileStoryPreviewFragment();
+            profileStoryPreviewFragment.setInterFace(this);
+            fragmentArrayList.add(profileStoryPreviewFragment);
         }
 
         int totalUser = fragmentArrayList.size();
@@ -50,23 +45,14 @@ public class UserStoryViewActivity extends BaseActivity implements OnUserStoryFi
         }
 
         activityStoryPreviewBinding.viewPager.setAdapter(homeViewPagerAdapter);
-        activityStoryPreviewBinding.viewPager.setCurrentItem(currentClickPositionFromIntent, true);
-//        pagerChangeInterface = (PagerChangeInterface) fragmentArrayList.get(currentClickPositionFromIntent);
-
-
         activityStoryPreviewBinding.viewPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
             @Override
             public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-                Log.d(TAG, "onPageScrolled: " + position);
             }
 
             @Override
             public void onPageSelected(int position) {
-
                 currentPosition = position;
-//                pagerChangeInterface = (PagerChangeInterface) fragmentArrayList.get(currentPosition);
-                Log.d(TAG, "onPageSelected: " + currentPosition);
-
             }
 
             @Override
@@ -74,12 +60,10 @@ public class UserStoryViewActivity extends BaseActivity implements OnUserStoryFi
                 switch (state) {
                     case 0:
                         isPlayStory = true;
-//                        pagerChangeInterface.selectPagerFragment(true, false, UserStoryViewActivity.this.storyPosition);
                         break;
                     case 1:
                     case 2:
                         isPlayStory = false;
-//                        pagerChangeInterface.selectPagerFragment(false, false, UserStoryViewActivity.this.storyPosition);
                         break;
                 }
             }
@@ -107,7 +91,7 @@ public class UserStoryViewActivity extends BaseActivity implements OnUserStoryFi
             @Override
             public void run() {
                 if (currentPosition <= fragmentArrayList.size() - 1 && currentPosition != 0) {
-                    if (currentPosition == 1 && isCallFromDashUserstory) {
+                    if (currentPosition == 1) {
                         onBackPressed();
                     } else {
                         activityStoryPreviewBinding.viewPager.setCurrentItem(currentPosition - 1, true);
@@ -122,14 +106,6 @@ public class UserStoryViewActivity extends BaseActivity implements OnUserStoryFi
     @Override
     public void swipeToFinishStory() {
         onBackPressed();
-    }
-
-    @Override
-    public void onBackPressed() {
-        Intent intent = new Intent();
-        intent.putExtra(ARG_BUNDLE_KEY_SCREEN_TAG, UserStoryViewActivity.class.getSimpleName());
-        setResult(RESULT_OK, intent);
-        super.onBackPressed();
     }
 
 }

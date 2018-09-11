@@ -13,6 +13,7 @@ import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 import com.storypreview.databinding.FragmentProfilePreviewStoryBinding;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -20,10 +21,9 @@ import java.util.concurrent.TimeUnit;
 
 import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
-import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 
-public class ProfileStoryPreviewFragment extends BaseFragment implements View.OnTouchListener {
+public class ProfileStoryPreviewFragment extends BaseFragment implements View.OnTouchListener, PagerChangeInterface {
     private static final String TAG = "storyPreviewFragment";
     private FragmentProfilePreviewStoryBinding fragmentStoryViewBinding;
     private TimerTask childTaskProgress;
@@ -31,27 +31,44 @@ public class ProfileStoryPreviewFragment extends BaseFragment implements View.On
     private long downActionTime = 0L;
     private float yClickPositionDown;
     private float clickPosition;
-    private Disposable subscribeLoadStory;
-    private int period;
-
+    private ArrayList<SampleBean> beanArrayList;
+    private OnUserStoryFinish userStoryFinish;
 
     @Override
     public int getLayoutResId() {
         return R.layout.fragment_profile_preview_story;
     }
 
+    public void setInterFace(OnUserStoryFinish onUserStoryFinish) {
+        this.userStoryFinish = onUserStoryFinish;
+    }
+
     @Override
     public void init() {
         fragmentStoryViewBinding = (FragmentProfilePreviewStoryBinding) getBindingObj();
+        beanArrayList = new ArrayList<>();
+        fetchSampleData();
         setListener();
     }
 
+    private void fetchSampleData() {
+/**
+ *   sample.json file there for sample data
+ */
+        for (int i = 0; i < 5; i++) {
+            SampleBean sampleBean = new SampleBean();
+            sampleBean.setUrl("https://s3-us-west-2.amazonaws.com/spinach-cafe/thumbnails/Medium/main-image/20180725193344429.jpg");
+            beanArrayList.add(sampleBean);
+        }
+    }
+
     private void loadStories(int index) {
-        subscribeLoadStory = Observable.fromCallable(() -> true)
+        Observable.fromCallable(() -> true)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(aBoolean -> {
                     Picasso.with(activity)
+//                            .load(beanArrayList.get(childIndex).getUrl())
                             .load(R.mipmap.test_img)
                             .into(fragmentStoryViewBinding.imgStory, new Callback() {
                                 @Override
@@ -78,7 +95,14 @@ public class ProfileStoryPreviewFragment extends BaseFragment implements View.On
         stopStory();
         if (activity == null)
             return;
-        progress[0] = ((ProgressBar) fragmentStoryViewBinding.lnyContainer.getChildAt(0)).getProgress();
+        if (childIndex >= beanArrayList.size() || childIndex >= fragmentStoryViewBinding.lnyContainer.getChildCount()) {
+            userStoryFinish.finishAllStory(true);
+            /**
+             *  here need to call next user story
+             */
+            return;
+        }
+        progress[0] = ((ProgressBar) fragmentStoryViewBinding.lnyContainer.getChildAt(childIndex)).getProgress();
         childTaskProgress = new TimerTask() {
             @Override
             public void run() {
@@ -86,20 +110,19 @@ public class ProfileStoryPreviewFragment extends BaseFragment implements View.On
                     stopStory();
                     return;
                 }
-                progress[0] = ((ProgressBar) fragmentStoryViewBinding.lnyContainer.getChildAt(0)).getProgress() + 1;
-                ((ProgressBar) fragmentStoryViewBinding.lnyContainer.getChildAt(0)).setProgress(progress[0]);
+                progress[0] = ((ProgressBar) fragmentStoryViewBinding.lnyContainer.getChildAt(childIndex)).getProgress() + 1;
+                ((ProgressBar) fragmentStoryViewBinding.lnyContainer.getChildAt(childIndex)).setProgress(progress[0]);
                 if (progress[0] == 100) {
-                    ((ProgressBar) fragmentStoryViewBinding.lnyContainer.getChildAt(0)).setProgress(0);
                     stopStory();
                     progress[0] = 0;
-                    if (childIndex == 4 - 1) {
-
-                        ((ProgressBar) fragmentStoryViewBinding.lnyContainer.getChildAt(0)).setProgress(0);
+                    if (childIndex < beanArrayList.size()) {
                         Observable.fromCallable(() -> true)
                                 .subscribeOn(Schedulers.io())
                                 .observeOn(AndroidSchedulers.mainThread())
-                                .subscribe(aBoolean -> {
-                                });
+                                .subscribe(aBoolean -> loadStories(childIndex));
+                    } else if (childIndex == beanArrayList.size() - 1) {
+                        userStoryFinish.finishAllStory(true);
+                        ((ProgressBar) fragmentStoryViewBinding.lnyContainer.getChildAt(0)).setProgress(0);
                         return;
                     }
                     childIndex++;
@@ -112,31 +135,29 @@ public class ProfileStoryPreviewFragment extends BaseFragment implements View.On
         } catch (Exception e) {
             e.printStackTrace();
         }
-        if (getActivity() != null) {
-            period = 5000;
-        }
+
 
     }
 
 
     private void nextPreviousStory(float xPosition) {
 
-        //applyAnimation();
-        float screenWidth = 3000;
+        float screenWidth = 1000;
         if (xPosition > screenWidth / 2) {
             Log.e(TAG, "nextPreviousStory: 1 " + childIndex);
-            if (childIndex == 4) {
+            if (childIndex == beanArrayList.size() - 1) {
                 Log.e(TAG, "nextPreviousStory: 2 " + childIndex);
-                ((ProgressBar) fragmentStoryViewBinding.lnyContainer.getChildAt(0)).setProgress(0);
+                ((ProgressBar) fragmentStoryViewBinding.lnyContainer.getChildAt(childIndex)).setProgress(0);
+                userStoryFinish.finishAllStory(true);
                 return;
             }
-            if (childIndex != 4 - 1) {
+            if (childIndex != beanArrayList.size() - 1) {
                 Log.e(TAG, "nextPreviousStory: 3 " + childIndex);
                 stopStory();
-
-                ((ProgressBar) fragmentStoryViewBinding.lnyContainer.getChildAt(0)).setProgress(0);
+                ((ProgressBar) fragmentStoryViewBinding.lnyContainer.getChildAt(childIndex)).setProgress(100);
                 childIndex++;
                 Log.e(TAG, "nextPreviousStory: 4 " + childIndex);
+                loadStories(childIndex);
             }
         }
 //        Left swipe
@@ -146,22 +167,23 @@ public class ProfileStoryPreviewFragment extends BaseFragment implements View.On
                 stopStory();
 
                 if (childIndex == 0) {
-                    ((ProgressBar) fragmentStoryViewBinding.lnyContainer.getChildAt(0)).setProgress(0);
+                    ((ProgressBar) fragmentStoryViewBinding.lnyContainer.getChildAt(childIndex)).setProgress(0);
+                    userStoryFinish.previousStory();
                     return;
                 }
 
-                ((ProgressBar) fragmentStoryViewBinding.lnyContainer.getChildAt(0)).setProgress(0);
+                ((ProgressBar) fragmentStoryViewBinding.lnyContainer.getChildAt(childIndex)).setProgress(0);
                 childIndex--;
                 Log.e(TAG, "nextPreviousStory: 6 " + childIndex);
                 if (childIndex != -1) {
                     Log.e(TAG, "nextPreviousStory: 7 " + childIndex);
-                    ((ProgressBar) fragmentStoryViewBinding.lnyContainer.getChildAt(0)).setProgress(0);
+                    ((ProgressBar) fragmentStoryViewBinding.lnyContainer.getChildAt(childIndex)).setProgress(0);
                 } else {
                     childIndex++;
                     Log.e(TAG, "nextPreviousStory: 8 " + childIndex);
                 }
                 Log.e(TAG, "nextPreviousStory: 9 " + childIndex);
-
+                loadStories(childIndex);
             }
         }
 
@@ -175,6 +197,7 @@ public class ProfileStoryPreviewFragment extends BaseFragment implements View.On
     }
 
     private void setListener() {
+        fragmentStoryViewBinding.imgStory.setOnTouchListener(this);
     }
 
     private void addProgressBar() {
@@ -185,7 +208,7 @@ public class ProfileStoryPreviewFragment extends BaseFragment implements View.On
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         LayoutInflater inflater = (LayoutInflater) activity.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < beanArrayList.size(); i++) {
             ProgressBar progressBar = new ProgressBar(activity, null, android.R.attr.progressBarStyleHorizontal);
             progressBar.setMax(100);
             progressBar.setProgressDrawable(ContextCompat.getDrawable(getActivity(), R.drawable.progress_drawable));
@@ -217,7 +240,6 @@ public class ProfileStoryPreviewFragment extends BaseFragment implements View.On
                 float yClickPositionUp = event.getY();
                 long upTime = System.currentTimeMillis();
                 if (Math.abs(yClickPositionUp) - Math.abs(yClickPositionDown) >= 2 * 100) {
-
                     stopStory();
                     activity.finish();
                     return false;
@@ -258,5 +280,27 @@ public class ProfileStoryPreviewFragment extends BaseFragment implements View.On
 
         loadStories(childIndex);
 
+    }
+
+    @Override
+    public void selectPagerFragment(boolean isSelect, boolean isUserChange) {
+
+        if (isSelect) {
+            stopStory();
+//            childIndex = 0;
+            if (fragmentStoryViewBinding.lnyContainer.getChildCount() == 0) {
+                addProgressBar();
+                setListener();
+                loadStories(childIndex);
+            } else
+                callNextStoryViewCounter();
+            setListener();
+
+        } else {
+//            Log.e("childTaskProgress == null", "" + (childTaskProgress == null));
+            if (childTaskProgress == null)
+                return;
+            stopStory();
+        }
     }
 }
