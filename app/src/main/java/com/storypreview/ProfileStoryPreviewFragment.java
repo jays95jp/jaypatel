@@ -289,10 +289,7 @@ public class ProfileStoryPreviewFragment extends BaseFragment implements View.On
                     return false;
                 }
 
-                if (isDown) {
-                    isDown = false;
-                    callNextStoryViewCounter();
-                }
+                callNextStoryViewCounter();
                 break;
             default:
                 break;
