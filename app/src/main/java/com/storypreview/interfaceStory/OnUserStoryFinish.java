@@ -1,4 +1,4 @@
-package com.storypreview;
+package com.storypreview.interfaceStory;
 
 public interface OnUserStoryFinish {
 

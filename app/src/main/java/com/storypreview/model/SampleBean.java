@@ -1,4 +1,4 @@
-package com.storypreview;
+package com.storypreview.model;
 
 public class SampleBean {
 

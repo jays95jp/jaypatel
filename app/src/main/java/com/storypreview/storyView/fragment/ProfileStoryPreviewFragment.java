@@ -1,4 +1,4 @@
-package com.storypreview;
+package com.storypreview.storyView.fragment;
 
 import android.content.Context;
 import android.support.v4.content.ContextCompat;
@@ -11,7 +11,12 @@ import android.widget.ProgressBar;
 
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
+import com.storypreview.R;
+import com.storypreview.model.SampleBean;
+import com.storypreview.base.BaseFragment;
 import com.storypreview.databinding.FragmentProfilePreviewStoryBinding;
+import com.storypreview.interfaceStory.OnUserStoryFinish;
+import com.storypreview.interfaceStory.PagerChangeInterface;
 
 import java.util.ArrayList;
 import java.util.Date;

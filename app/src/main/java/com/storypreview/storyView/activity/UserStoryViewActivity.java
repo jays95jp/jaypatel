@@ -1,4 +1,4 @@
-package com.storypreview;
+package com.storypreview.storyView.activity;
 
 import android.annotation.SuppressLint;
 import android.os.Bundle;
@@ -6,7 +6,13 @@ import android.support.v4.app.Fragment;
 import android.support.v4.view.ViewPager;
 import android.util.Log;
 
+import com.storypreview.R;
+import com.storypreview.adapter.HomeViewPagerAdapter;
+import com.storypreview.base.BaseActivity;
 import com.storypreview.databinding.ActivityStoryViewBinding;
+import com.storypreview.interfaceStory.OnUserStoryFinish;
+import com.storypreview.interfaceStory.PagerChangeInterface;
+import com.storypreview.storyView.fragment.ProfileStoryPreviewFragment;
 
 import java.util.ArrayList;
 

@@ -1,4 +1,4 @@
-package com.storypreview;
+package com.storypreview.base;
 
 import android.databinding.DataBindingUtil;
 import android.databinding.ViewDataBinding;
