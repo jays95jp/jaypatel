@@ -33,6 +33,8 @@ public class ProfileStoryPreviewFragment extends BaseFragment implements View.On
     private float clickPosition;
     private ArrayList<SampleBean> beanArrayList;
     private OnUserStoryFinish userStoryFinish;
+    private Boolean isSelect = false;
+    private boolean isDown = false, isImageLoad = false;
 
     @Override
     public int getLayoutResId() {
@@ -49,13 +51,36 @@ public class ProfileStoryPreviewFragment extends BaseFragment implements View.On
         beanArrayList = new ArrayList<>();
         fetchSampleData();
         setListener();
+
+        for (int i = 0; i < beanArrayList.size(); i++) {
+            Picasso.with(getActivity()).load(beanArrayList.get(i).getUrl()).fetch();
+        }
+
+        if (getArguments() != null && getArguments().containsKey("select")) {
+            isSelect = getArguments().getBoolean("select");
+        }
+        if (!isSelect) {
+            Picasso.with(getActivity())
+                    .load(R.mipmap.test_img)
+                    .into(fragmentStoryViewBinding.imgStory, new Callback() {
+                        @Override
+                        public void onSuccess() {
+                            isImageLoad = true;
+                        }
+
+                        @Override
+                        public void onError() {
+                        }
+                    });
+        }
+
     }
 
     private void fetchSampleData() {
 /**
  *   sample.json file there for sample data
  */
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 3; i++) {
             SampleBean sampleBean = new SampleBean();
             sampleBean.setUrl("https://s3-us-west-2.amazonaws.com/spinach-cafe/thumbnails/Medium/main-image/20180725193344429.jpg");
             beanArrayList.add(sampleBean);
@@ -73,10 +98,12 @@ public class ProfileStoryPreviewFragment extends BaseFragment implements View.On
                             .into(fragmentStoryViewBinding.imgStory, new Callback() {
                                 @Override
                                 public void onSuccess() {
+                                    isImageLoad = true;
 
-                                    Observable.just(true)
-                                            .delay(500, TimeUnit.MILLISECONDS)
-                                            .subscribe(bool -> callNextStoryViewCounter());
+                                    if (isSelect)
+                                        Observable.just(true)
+                                                .delay(500, TimeUnit.MILLISECONDS)
+                                                .subscribe(bool -> callNextStoryViewCounter());
 
                                 }
 
@@ -96,6 +123,7 @@ public class ProfileStoryPreviewFragment extends BaseFragment implements View.On
         if (activity == null)
             return;
         if (childIndex >= beanArrayList.size() || childIndex >= fragmentStoryViewBinding.lnyContainer.getChildCount()) {
+            setProgressBar(fragmentStoryViewBinding.lnyContainer.getChildCount() - 1, 0);
             userStoryFinish.finishAllStory(true);
             /**
              *  here need to call next user story
@@ -122,7 +150,7 @@ public class ProfileStoryPreviewFragment extends BaseFragment implements View.On
                                 .subscribe(aBoolean -> loadStories(childIndex));
                     } else if (childIndex == beanArrayList.size() - 1) {
                         userStoryFinish.finishAllStory(true);
-                        ((ProgressBar) fragmentStoryViewBinding.lnyContainer.getChildAt(0)).setProgress(0);
+                        setProgressBar(0, 0);
                         return;
                     }
                     childIndex++;
@@ -147,14 +175,14 @@ public class ProfileStoryPreviewFragment extends BaseFragment implements View.On
             Log.e(TAG, "nextPreviousStory: 1 " + childIndex);
             if (childIndex == beanArrayList.size() - 1) {
                 Log.e(TAG, "nextPreviousStory: 2 " + childIndex);
-                ((ProgressBar) fragmentStoryViewBinding.lnyContainer.getChildAt(childIndex)).setProgress(0);
+                setProgressBar(childIndex, 0);
                 userStoryFinish.finishAllStory(true);
                 return;
             }
             if (childIndex != beanArrayList.size() - 1) {
                 Log.e(TAG, "nextPreviousStory: 3 " + childIndex);
                 stopStory();
-                ((ProgressBar) fragmentStoryViewBinding.lnyContainer.getChildAt(childIndex)).setProgress(100);
+                setProgressBar(childIndex, 100);
                 childIndex++;
                 Log.e(TAG, "nextPreviousStory: 4 " + childIndex);
                 loadStories(childIndex);
@@ -167,17 +195,16 @@ public class ProfileStoryPreviewFragment extends BaseFragment implements View.On
                 stopStory();
 
                 if (childIndex == 0) {
-                    ((ProgressBar) fragmentStoryViewBinding.lnyContainer.getChildAt(childIndex)).setProgress(0);
+                    setProgressBar(childIndex, 0);
                     userStoryFinish.previousStory();
                     return;
                 }
-
-                ((ProgressBar) fragmentStoryViewBinding.lnyContainer.getChildAt(childIndex)).setProgress(0);
+                setProgressBar(childIndex, 0);
                 childIndex--;
                 Log.e(TAG, "nextPreviousStory: 6 " + childIndex);
                 if (childIndex != -1) {
                     Log.e(TAG, "nextPreviousStory: 7 " + childIndex);
-                    ((ProgressBar) fragmentStoryViewBinding.lnyContainer.getChildAt(childIndex)).setProgress(0);
+                    setProgressBar(childIndex, 0);
                 } else {
                     childIndex++;
                     Log.e(TAG, "nextPreviousStory: 8 " + childIndex);
@@ -187,8 +214,13 @@ public class ProfileStoryPreviewFragment extends BaseFragment implements View.On
             }
         }
 
+    }
 
-//        setBottomSheet();
+
+    private void setProgressBar(int index, int progress) {
+        ProgressBar progressBar = ((ProgressBar) fragmentStoryViewBinding.lnyContainer.getChildAt(index));
+        if (progressBar != null)
+            progressBar.setProgress(progress);
     }
 
     private void stopStory() {
@@ -227,12 +259,18 @@ public class ProfileStoryPreviewFragment extends BaseFragment implements View.On
         if (Math.abs(event.getY() - fragmentStoryViewBinding.lnyContainer.getY()) < 200) {
             return true;
         }
+
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 onPause();
                 yClickPositionDown = event.getY();
                 clickPosition = event.getX();
                 downActionTime = System.currentTimeMillis();
+                break;
+
+            case MotionEvent.ACTION_MOVE:
+                isDown = true;
+                stopStory();
                 break;
 
             case MotionEvent.ACTION_UP:
@@ -244,12 +282,17 @@ public class ProfileStoryPreviewFragment extends BaseFragment implements View.On
                     activity.finish();
                     return false;
                 }
-                long LIMIT_TIMER = 200L;
+                long LIMIT_TIMER = 500L;
                 if (LIMIT_TIMER > (upTime - downActionTime)) {
+                    isDown = false;
                     nextPreviousStory(clickPosition);
                     return false;
                 }
-                onResume();
+
+                if (isDown) {
+                    isDown = false;
+                    callNextStoryViewCounter();
+                }
                 break;
             default:
                 break;
@@ -277,15 +320,16 @@ public class ProfileStoryPreviewFragment extends BaseFragment implements View.On
         super.onResume();
         if (fragmentStoryViewBinding.lnyContainer.getChildCount() == 0)
             addProgressBar();
-
-        loadStories(childIndex);
+        if (isSelect)
+            loadStories(childIndex);
 
     }
 
     @Override
     public void selectPagerFragment(boolean isSelect, boolean isUserChange) {
-
-        if (isSelect) {
+        this.isSelect = isSelect;
+        isDown = isSelect;
+        if (isSelect && isImageLoad) {
             stopStory();
 //            childIndex = 0;
             if (fragmentStoryViewBinding.lnyContainer.getChildCount() == 0) {
